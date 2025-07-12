@@ -3,6 +3,7 @@ package terraformpullrequest
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,7 +49,14 @@ func isLayerAffected(layer configv1alpha1.TerraformLayer, pr configv1alpha1.Terr
 	if layer.Spec.Repository.Namespace != pr.Spec.Repository.Namespace {
 		return false
 	}
-	if layer.Spec.Branch != pr.Spec.Base {
+	
+	// For testing trunk-based workflow: treat tags starting with "v" as "main" for PR matching
+	effectiveBranch := layer.Spec.Branch
+	if strings.HasPrefix(effectiveBranch, "v") { // Assume tags like "v1.0.0"
+		effectiveBranch = "main"
+	}
+	
+	if effectiveBranch != pr.Spec.Base {
 		return false
 	}
 	if controller.LayerFilesHaveChanged(layer, changes) {

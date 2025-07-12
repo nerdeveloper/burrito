@@ -6,6 +6,11 @@ config:
         tag: DEV_TAG
         pullPolicy: Never
     datastore:
+      hostname: "burrito-datastore.burrito-system.svc.cluster.local"
+      serviceAccounts:
+        - "burrito-system/burrito-runner"
+        - "burrito-system/burrito-controllers"
+        - "burrito-system/burrito-server"
       storage:
         mock: true
 global:
