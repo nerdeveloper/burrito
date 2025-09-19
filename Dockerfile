@@ -1,8 +1,8 @@
-# syntax=docker/dockerfile:1.17.1
+# syntax=docker/dockerfile:1.18.0
 
 # Build Burrito UI
 
-FROM docker.io/library/node:22.17.0@sha256:0c0734eb7051babbb3e95cd74e684f940552b31472152edf0bb23e54ab44a0d7 AS builder-ui
+FROM docker.io/library/node:22.19.0@sha256:afff6d8c97964a438d2e6a9c96509367e45d8bf93f790ad561a1eaea926303d9 AS builder-ui
 
 WORKDIR /workspace
 # Copy the node modules manifests
@@ -17,7 +17,7 @@ ENV VITE_API_BASE_URL=/api
 RUN yarn build
 
 # Build the manager binary
-FROM docker.io/library/golang:1.24.4-alpine@sha256:68932fa6d4d4059845c8f40ad7e654e626f3ebd3706eef7846f319293ab5cb7a AS builder
+FROM docker.io/library/golang:1.24.7-alpine@sha256:fc2cff6625f3c1c92e6c85938ac5bd09034ad0d4bc2dfb08278020b68540dbb5 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG PACKAGE=github.com/padok-team/burrito
@@ -67,7 +67,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
         -X ${PACKAGE}/internal/version.BuildTimestamp=${BUILD_TIMESTAMP}" \
         -o bin/burrito main.go
 
-FROM docker.io/library/alpine:3.21.3@sha256:a8560b36e8b8210634f77d9f7f9efd7ffa463e380b75e2e74aff4511df3ef88c
+FROM docker.io/library/alpine:3.22.1@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
 
 WORKDIR /home/burrito
 
@@ -98,7 +98,7 @@ COPY --from=builder /workspace/bin/burrito /go/bin/dlv* /usr/local/bin/
 RUN mkdir -p /runner/bin
 RUN chmod +x /usr/local/bin/*
 # /home/burrito/.config is required for debug mode
-RUN mkdir -p /home/burrito/.config && chown -R burrito:burrito /runner /home/burrito/.config    
+RUN mkdir -p /home/burrito/.config && chown -R burrito:burrito /runner /home/burrito
 
 # Use an unprivileged user
 USER 65532:65532

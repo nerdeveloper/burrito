@@ -1,8 +1,3 @@
-# TODO: Make CRD install optional? or use --skip-crds Helm flag
-# Custom Resource Definitions
-# crds:
-# install: true
-
 # Burrito configuration
 ## Ref: https://docs.burrito.tf/operator-manual/advanced-configuration/
 config:
@@ -77,6 +72,28 @@ config:
     server:
       # -- Server exposed port
       addr: ":8080"
+      basicAuth:
+        # -- Enable/Disable Basic Authentication for the Burrito server. If both Basic Auth and OIDC are disabled, the server will be publicly accessible.
+        enabled: true
+      oidc:
+        # -- Enable/Disable OIDC authentication for the Burrito server
+        enabled: false
+        # -- OIDC issuer URL
+        issuerUrl: ""
+        # -- OIDC client ID -- client secret should be set in a Kubernetes secret and referenced in server.deployment.envFrom with the key "BURRITO_SERVER_OIDC_CLIENTSECRET"
+        clientId: ""
+        # -- OIDC Redirect URL, should be the Burrito server URL with /auth/callback appended (ex: https://burrito.example.com/auth/callback)
+        redirectUrl: ""
+        # -- OIDC scopes to request
+        scopes:
+          - "openid"
+          - "profile"
+          - "email"
+      session:
+        # -- Session max age in seconds, after which the session will expire
+        maxAge: 86400
+        # -- Cookie secure, set this to true if using HTTPS
+        secure: false
 
     runner:
       # -- Configmap name to store the SSH known hosts in the runner
@@ -86,7 +103,7 @@ config:
         repository: ghcr.io/padok-team/burrito
         tag: "" # By default use Chart's appVersion
         pullPolicy: Always
-      
+
       # -- Command to run in the Burrito runner container
       command: ["burrito"]
       # -- Arguments to pass to the Burrito runner container
@@ -140,6 +157,8 @@ hermitcrab:
   service:
     # -- Hermitcrab service annotations
     annotations: {}
+    # -- Hermitcrab service traffic distribution policy
+    trafficDistribution: ""
   deployment:
     # -- Hermitcrab replicas
     replicas: 1
@@ -149,6 +168,8 @@ hermitcrab:
     nodeSelector: {}
     # -- Hermitcrab affinity
     affinity: {}
+    # -- Hermitcrab topology spread constraints
+    topologySpreadConstraints: []
     # -- Hermitcrab image configuration
     image:
       pullPolicy: Always
@@ -213,6 +234,11 @@ global:
     labels:
       app.kubernetes.io/part-of: burrito
     annotations: {}
+  # Custom Resource Definitions
+  # Having CRDs under the Helm templates folder allows us to manage upgrades more easily
+  crds:
+    # -- Enable/Disable CRD installation through the Helm chart
+    install: true
   deployment:
     mode: Release
     autoscaling:
@@ -346,16 +372,28 @@ server:
     env: []
     # -- Environment variables to pass to the Burrito server container
     envFrom: []
+    # - secretRef:
+    #     name: burrito-oidc-client-secret ## Name of the secret containing the OIDC client secret at key "BURRITO_SERVER_OIDC_CLIENTSECRET"
     # -- Additional volumes
     extraVolumes: {}
     # -- Additional volume mounts
     extraVolumeMounts: {}
+    # -- Server tolerations
+    tolerations: []
+    # -- Server node selector
+    nodeSelector: {}
+    # -- Server affinity
+    affinity: {}
+    # -- Server topology spread constraints
+    topologySpreadConstraints: []
   # -- Service configuration for the Burrito server
   service:
     ports:
       - name: http
         port: 80
         targetPort: http
+    # -- Server service traffic distribution policy
+    trafficDistribution: ""
   # -- Ingress configuration for the Burrito server
   ingress:
     # -- Enable/Disable ingress creation for the Burrito server
@@ -412,6 +450,14 @@ datastore:
     extraVolumes: {}
     # -- Additional volume mounts
     extraVolumeMounts: {}
+    # -- Datastore tolerations
+    tolerations: []
+    # -- Datastore node selector
+    nodeSelector: {}
+    # -- Datastore affinity
+    affinity: {}
+    # -- Datastore topology spread constraints
+    topologySpreadConstraints: []
   # -- Service configuration for the Burrito datastore
   service:
     ports:
@@ -421,6 +467,8 @@ datastore:
       - name: https
         port: 443
         targetPort: http
+    # -- Datastore service traffic distribution policy
+    trafficDistribution: ""
   # -- TLS configuration for the Burrito datastore
   tls:
     # -- Enable/Disable TLS for the Burrito datastore (recommended for production use)
@@ -461,3 +509,18 @@ tenants: []
 #       annotations:
 #         iam.cloud.provider/role: cloud-provider-role
 #       labels: {}
+
+# Network Policy configuration
+networkPolicy:
+  # -- Enable/Disable Network Policy creation
+  enabled: false
+  # -- Metadata configuration for Network Policies
+  metadata:
+    labels: {}
+    annotations: {}
+  # -- Network policy to allow ingress traffic from all the tenant namespaces to the release namespace
+  ingressFromTenants:
+    # -- Enable/Disable tenant ingress network policy
+    enabled: true
+    # -- Additional ingress rules for tenant namespaces network policy
+    additionalIngressRules: []

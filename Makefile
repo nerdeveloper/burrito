@@ -49,7 +49,7 @@ endif
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.31.0
+ENVTEST_K8S_VERSION = 1.34.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -90,6 +90,13 @@ manifests: controller-gen kustomize ## Generate CustomResourceDefinition objects
 	$(CONTROLLER_GEN) crd paths="./..." output:crd:dir=manifests/crds
 	echo "# This is an auto-generated file. DO NOT EDIT" > manifests/install.yaml
 	$(KUSTOMIZE) build manifests/cluster-install >> manifests/install.yaml
+	@for crd in manifests/crds/config.terraform.padok.cloud_*.yaml; do \
+		filename=$$(basename "$$crd"); \
+		chart_filename="deploy/charts/burrito/templates/crds/$$filename"; \
+		echo "{{- if .Values.global.crds.install }}" > "$$chart_filename"; \
+		cat "$$crd" >> "$$chart_filename"; \
+		echo "{{- end }}" >> "$$chart_filename"; \
+	done
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -222,8 +229,9 @@ CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= 5.5.0
-CONTROLLER_TOOLS_VERSION ?= v0.16.4
+KUSTOMIZE_VERSION ?= 5.7.1
+## Update from https://github.com/kubernetes-sigs/controller-tools/releases
+CONTROLLER_TOOLS_VERSION ?= v0.19.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
