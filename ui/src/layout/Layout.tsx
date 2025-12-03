@@ -7,6 +7,8 @@ import { getUserInfo, UserInfo } from '@/clients/auth/client';
 
 import NavigationBar from '@/components/navigation/NavigationBar';
 
+const isAuthDisabled = import.meta.env.VITE_DISABLE_AUTH === 'true';
+
 const Layout: React.FC = () => {
   const { theme } = useContext(ThemeContext);
 
@@ -18,10 +20,11 @@ const Layout: React.FC = () => {
     queryKey: ['userInfo'],
     queryFn: getUserInfo,
     retry: false,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    enabled: !isAuthDisabled
   });
 
-  if (isLoading) {
+  if (!isAuthDisabled && isLoading) {
     return (
       <div
         className={`
@@ -45,7 +48,7 @@ const Layout: React.FC = () => {
     );
   }
 
-  if (isError || !user) {
+  if (!isAuthDisabled && (isError || !user)) {
     return <Navigate to="/login" replace />;
   }
 
